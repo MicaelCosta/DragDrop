@@ -1,19 +1,25 @@
 /* eslint-disable prettier/prettier */
-import React, {useRef, useState} from 'react';
+import React, {useRef, useState, useCallback, useMemo} from 'react';
 import {StyleSheet, PanResponder, Animated} from 'react-native';
 
-const Draggable = () => {
+const Draggable = ({dropArea}) => {
   const pan = useRef(new Animated.ValueXY()).current;
 
   const [showDraggable, setShowDraggable] = useState(true);
   const [opacity] = useState(new Animated.Value(1));
 
-  function isDropArea(gesture) {
-    return gesture.moveY < 200;
-  }
+  const isDropArea = useCallback(
+    gesture => {
+      console.log('[isDropArea] gesture', gesture);
+      console.log('[isDropArea] dropArea', dropArea);
 
-  const panResponder = useRef(
-    PanResponder.create({
+      return gesture.moveY < 200;
+    },
+    [dropArea],
+  );
+
+  const panResponder = useMemo(() => {
+    return PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         pan.setOffset({
@@ -21,25 +27,26 @@ const Draggable = () => {
           y: pan.y._value,
         });
       },
-      onPanResponderMove: Animated.event([null, {dx: pan.x, dy: pan.y}], { useNativeDriver: false }),
-      onPanResponderRelease: (e, gesture) => {
-          if (isDropArea(gesture)) {
-            Animated.timing(opacity, {
-              toValue: 0,
-              duration: 150,
-              useNativeDriver: false,
-            }).start(() =>
-                setShowDraggable(false)
-            );
-          }
+      onPanResponderMove: Animated.event([null, {dx: pan.x, dy: pan.y}], {
+        useNativeDriver: false,
+      }),
+      onPanResponderRelease: (_, gesture) => {
+        if (isDropArea(gesture)) {
+          Animated.timing(opacity, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: false,
+          }).start(() => setShowDraggable(false));
+        }
       },
-    }),
-  ).current;
+    });
+  }, [isDropArea, opacity, pan]);
 
-    if (!showDraggable) {return null;}
+  if (!showDraggable) {
+    return null;
+  }
 
   return (
-
     <Animated.View
       {...panResponder.panHandlers}
       style={[
@@ -49,7 +56,6 @@ const Draggable = () => {
         styles.circle,
       ]}
     />
-
   );
 };
 
